@@ -2,6 +2,8 @@ export type PriorityStatus = 'must-read' | 'feed' | 'abandoned';
 
 export type CategoryType = '玄幻' | '言情' | '悬疑' | '同人' | '科幻' | '都市' | '历史' | '其他';
 
+export type TimeRange = 1 | 6 | 24 | 72 | 168;
+
 export interface Chapter {
   id: string;
   title: string;
@@ -48,6 +50,7 @@ export interface Work {
   characters: Character[];
   lastChecked: number;
   addedAt: number;
+  lastNotifiedChapter?: number;
 }
 
 export interface WorkGroup {
@@ -58,11 +61,14 @@ export interface WorkGroup {
   isExpanded: boolean;
 }
 
-export type SortType = 'time' | 'wordCount' | 'title';
+export type SortType = 'time' | 'wordCount' | 'title' | 'category';
 
 export interface FilterOptions {
   category?: CategoryType;
   priority?: PriorityStatus;
   isPaid?: boolean;
   minWordCount?: number;
+  groupId?: string;
+  timeRange?: TimeRange;
+  hideUnmetFeedThreshold?: boolean;
 }

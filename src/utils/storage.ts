@@ -1,4 +1,4 @@
-import { Work, WorkGroup } from '../types';
+import { Work, WorkGroup, TimeRange } from '../types';
 
 const STORAGE_KEY = 'novel-tracker-data';
 
@@ -46,6 +46,17 @@ export const formatTimeAgo = (timestamp: number): string => {
   }
 };
 
+export const formatTimeRange = (range: TimeRange): string => {
+  const labels: Record<TimeRange, string> = {
+    1: '最近 1 小时',
+    6: '最近 6 小时',
+    24: '最近 24 小时',
+    72: '最近 3 天',
+    168: '最近 7 天',
+  };
+  return labels[range];
+};
+
 export const formatWordCount = (count: number): string => {
   if (count >= 10000) {
     return `${(count / 10000).toFixed(1)}万`;
@@ -55,7 +66,7 @@ export const formatWordCount = (count: number): string => {
   return `${count}`;
 };
 
-export const getRecentChapters = (works: Work[], hours: number = 24) => {
+export const getRecentChapters = (works: Work[], hours: TimeRange = 24) => {
   const cutoff = Date.now() - hours * 60 * 60 * 1000;
   const result: { work: Work; chapter: typeof works[0]['chapters'][0] }[] = [];
 
@@ -68,6 +79,28 @@ export const getRecentChapters = (works: Work[], hours: number = 24) => {
   });
 
   return result.sort((a, b) => b.chapter.publishTime - a.chapter.publishTime);
+};
+
+export const getUnreadChaptersSinceLastRead = (work: Work) => {
+  return work.chapters
+    .filter((ch) => !ch.isRead && ch.chapterNumber > work.lastReadChapter)
+    .sort((a, b) => a.chapterNumber - b.chapterNumber);
+};
+
+export const isFeedThresholdMet = (work: Work): boolean => {
+  if (work.priority !== 'feed') return false;
+  const unreadCount = getUnreadChaptersSinceLastRead(work).length;
+  return unreadCount >= work.feedThreshold;
+};
+
+export const getFeedProgress = (work: Work): { current: number; threshold: number; percentage: number } => {
+  const current = getUnreadChaptersSinceLastRead(work).length;
+  const threshold = work.feedThreshold;
+  return {
+    current,
+    threshold,
+    percentage: Math.min(100, (current / threshold) * 100),
+  };
 };
 
 export const getPriorityLabel = (priority: string): string => {
@@ -90,4 +123,10 @@ export const getPriorityColor = (priority: string): string => {
 
 export const generateId = (): string => {
   return Math.random().toString(36).substring(2, 11);
+};
+
+export const getWorksByGroup = (works: Work[], groups: WorkGroup[], groupId: string): Work[] => {
+  const group = groups.find((g) => g.id === groupId);
+  if (!group) return [];
+  return works.filter((w) => group.workIds.includes(w.id));
 };

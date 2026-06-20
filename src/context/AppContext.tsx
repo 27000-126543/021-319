@@ -1,7 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { Work, WorkGroup, FilterOptions, SortType, PriorityStatus } from '../types';
+import { Work, WorkGroup, FilterOptions, SortType, PriorityStatus, TimeRange } from '../types';
 import { mockWorks, mockGroups } from '../data/mockData';
-import { loadFromStorage, saveToStorage, generateId } from '../utils/storage';
+import {
+  loadFromStorage,
+  saveToStorage,
+  generateId,
+  getUnreadChaptersSinceLastRead,
+  isFeedThresholdMet,
+  getFeedProgress,
+} from '../utils/storage';
 
 interface AppContextType {
   works: Work[];
@@ -22,7 +29,11 @@ interface AppContextType {
   addCharacter: (workId: string, name: string, description: string) => void;
   updateWorkPriority: (workId: string, priority: PriorityStatus) => void;
   updateWorkExpectation: (workId: string, expectation: number) => void;
+  updateFeedThreshold: (workId: string, threshold: number) => void;
   getUnreadCount: (workId: string) => number;
+  isFeedThresholdMet: (workId: string) => boolean;
+  getFeedProgress: (workId: string) => { current: number; threshold: number; percentage: number };
+  getNewChaptersCount: (workId: string) => number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -31,7 +42,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [works, setWorks] = useState<Work[]>([]);
   const [groups, setGroups] = useState<WorkGroup[]>([]);
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
-  const [radarFilter, setRadarFilter] = useState<FilterOptions>({});
+  const [radarFilter, setRadarFilter] = useState<FilterOptions>({
+    timeRange: 24,
+    hideUnmetFeedThreshold: true,
+  });
   const [radarSort, setRadarSort] = useState<SortType>('time');
   const [listFilter, setListFilter] = useState<FilterOptions>({});
 
@@ -74,6 +88,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             lastReadChapter: readChapter
               ? Math.max(work.lastReadChapter, readChapter.chapterNumber)
               : work.lastReadChapter,
+            lastNotifiedChapter: readChapter
+              ? Math.max(work.lastNotifiedChapter || 0, readChapter.chapterNumber)
+              : work.lastNotifiedChapter,
           };
         }
         return work;
@@ -163,11 +180,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   }, []);
 
+  const updateFeedThreshold = useCallback((workId: string, threshold: number) => {
+    setWorks((prev) =>
+      prev.map((work) =>
+        work.id === workId ? { ...work, feedThreshold: threshold } : work
+      )
+    );
+  }, []);
+
   const getUnreadCount = useCallback(
     (workId: string) => {
       const work = works.find((w) => w.id === workId);
       if (!work) return 0;
       return work.chapters.filter((ch) => !ch.isRead).length;
+    },
+    [works]
+  );
+
+  const checkFeedThresholdMet = useCallback(
+    (workId: string) => {
+      const work = works.find((w) => w.id === workId);
+      if (!work) return false;
+      return isFeedThresholdMet(work);
+    },
+    [works]
+  );
+
+  const checkFeedProgress = useCallback(
+    (workId: string) => {
+      const work = works.find((w) => w.id === workId);
+      if (!work) return { current: 0, threshold: 0, percentage: 0 };
+      return getFeedProgress(work);
+    },
+    [works]
+  );
+
+  const getNewChaptersCount = useCallback(
+    (workId: string) => {
+      const work = works.find((w) => w.id === workId);
+      if (!work) return 0;
+      return getUnreadChaptersSinceLastRead(work).length;
     },
     [works]
   );
@@ -192,7 +244,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addCharacter,
       updateWorkPriority,
       updateWorkExpectation,
+      updateFeedThreshold,
       getUnreadCount,
+      isFeedThresholdMet: checkFeedThresholdMet,
+      getFeedProgress: checkFeedProgress,
+      getNewChaptersCount,
     }),
     [
       works,
@@ -209,7 +265,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addCharacter,
       updateWorkPriority,
       updateWorkExpectation,
+      updateFeedThreshold,
       getUnreadCount,
+      checkFeedThresholdMet,
+      checkFeedProgress,
+      getNewChaptersCount,
     ]
   );
 

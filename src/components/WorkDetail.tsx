@@ -14,9 +14,19 @@ import {
   Users,
   FileText,
   ChevronRight,
+  Settings,
+  Zap,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { formatTimeAgo, formatWordCount, getPriorityLabel, getPriorityColor } from '../utils/storage';
+import {
+  formatTimeAgo,
+  formatWordCount,
+  getPriorityLabel,
+  getPriorityColor,
+  getFeedProgress,
+  isFeedThresholdMet,
+  getUnreadChaptersSinceLastRead,
+} from '../utils/storage';
 import { PriorityStatus } from '../types';
 
 const WorkDetail: React.FC = () => {
@@ -26,10 +36,12 @@ const WorkDetail: React.FC = () => {
     markChapterRead,
     updateWorkPriority,
     updateWorkExpectation,
+    updateFeedThreshold,
     addNote,
     updateNote,
     deleteNote,
     addCharacter,
+    getNewChaptersCount,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'chapters' | 'notes' | 'characters'>('chapters');
@@ -181,15 +193,7 @@ const WorkDetail: React.FC = () => {
       </div>
 
       {work.priority === 'feed' && (
-        <div className="feed-notice">
-          <Clock size={20} />
-          <span>
-            养肥模式：累计 {unreadCount} 章未读 / 阈值 {work.feedThreshold} 章
-          </span>
-          {unreadCount >= work.feedThreshold && (
-            <span className="feed-alert">已达到养肥提醒阈值！</span>
-          )}
-        </div>
+        <FeedInfo workId={work.id} feedThreshold={work.feedThreshold} />
       )}
 
       <div className="detail-tabs">
@@ -444,6 +448,122 @@ const WorkDetail: React.FC = () => {
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+interface FeedInfoProps {
+  workId: string;
+  feedThreshold: number;
+}
+
+const FeedInfo: React.FC<FeedInfoProps> = ({ workId, feedThreshold }) => {
+  const { updateFeedThreshold, getNewChaptersCount, getFeedProgress, isFeedThresholdMet } = useApp();
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempThreshold, setTempThreshold] = useState(feedThreshold);
+
+  const feedProgress = getFeedProgress(workId);
+  const feedReady = isFeedThresholdMet(workId);
+  const newCount = getNewChaptersCount(workId);
+
+  const handleSave = () => {
+    const newThreshold = Math.max(1, Math.min(100, tempThreshold));
+    updateFeedThreshold(workId, newThreshold);
+    setIsEditing(false);
+  };
+
+  const thresholdOptions = [5, 10, 15, 20, 30, 50];
+
+  return (
+    <div className={`feed-notice ${feedReady ? 'ready' : ''}`}>
+      <div className="feed-info-header">
+        <div className="feed-info-main">
+          {feedReady ? (
+            <Zap size={20} className="feed-ready-icon" />
+          ) : (
+            <Clock size={20} />
+          )}
+          <div>
+            <span className="feed-title">
+              {feedReady ? '🎉 养肥完成！可以开宰了' : '⏳ 养肥中...'}
+            </span>
+            <p className="feed-subtitle">
+              本次攒了 <strong>{newCount}</strong> 章新内容
+              （{feedProgress.current}/{feedProgress.threshold} 章）
+            </p>
+          </div>
+        </div>
+        <button
+          className="feed-settings-btn"
+          onClick={() => {
+            setTempThreshold(feedThreshold);
+            setIsEditing(!isEditing);
+          }}
+        >
+          <Settings size={16} />
+          调整阈值
+        </button>
+      </div>
+
+      <div className="feed-progress-large">
+        <div className="feed-progress-label-large">
+          <span>养肥进度</span>
+          <span>{feedProgress.current}/{feedProgress.threshold} 章</span>
+        </div>
+        <div className="feed-progress-track-large">
+          <div
+            className="feed-progress-fill-large"
+            style={{
+              width: `${feedProgress.percentage}%`,
+              background: feedReady
+                ? 'linear-gradient(90deg, #22c55e, #16a34a)'
+                : 'linear-gradient(90deg, #f59e0b, #ea580c)',
+            }}
+          />
+        </div>
+        {feedReady && (
+          <span className="feed-alert-large">已达到养肥提醒阈值！</span>
+        )}
+      </div>
+
+      {isEditing && (
+        <div className="feed-threshold-editor">
+          <p className="editor-label">选择养肥阈值：</p>
+          <div className="threshold-options">
+            {thresholdOptions.map((opt) => (
+              <button
+                key={opt}
+                className={`threshold-btn ${tempThreshold === opt ? 'active' : ''}`}
+                onClick={() => setTempThreshold(opt)}
+              >
+                {opt} 章
+              </button>
+            ))}
+            <div className="threshold-custom">
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={tempThreshold}
+                onChange={(e) => setTempThreshold(Number(e.target.value))}
+                className="threshold-input"
+              />
+              <span className="threshold-unit">章</span>
+            </div>
+          </div>
+          <div className="editor-actions">
+            <button
+              className="btn-cancel"
+              onClick={() => setIsEditing(false)}
+            >
+              取消
+            </button>
+            <button className="btn-save" onClick={handleSave}>
+              保存
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
