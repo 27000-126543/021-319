@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>追更控制台 - 启动失败</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 60px 20px;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+    .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 12px;
+      color: #ef4444;
+    }
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #6b7280;
+      margin: 0 0 16px;
+    }
+    .code-block {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 12px;
+      color: #374151;
+      text-align: left;
+      word-break: break-all;
+    }
+    .tip {
+      margin-top: 24px;
+      padding: 12px;
+      background: #eff6ff;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #1d4ed8;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #5a67d8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📚</div>
+    <h1>开发服务器连接失败</h1>
+    <p>无法连接到 Vite 开发服务器，请检查开发服务器是否已启动。</p>
+    <p>请在项目根目录执行以下命令启动开发服务器：</p>
+    <div class="code-block">npm run dev</div>
+    <div class="tip">
+      💡 或者直接运行 <strong>npm run electron:dev</strong> 同时启动服务器和桌面窗口。
+    </div>
+    <button onclick="window.location.reload()">重试连接</button>
+  </div>
+</body>
+</html>

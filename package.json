@@ -10,11 +10,14 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "electron:dev": "set NODE_ENV=development&& concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "npm run build && electron-builder",
-    "electron:build:win": "npm run build && electron-builder --win",
-    "electron:build:mac": "npm run build && electron-builder --mac",
-    "electron:build:linux": "npm run build && electron-builder --linux"
+    "electron": "cross-env NODE_ENV=development electron .",
+    "electron:wait": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
+    "electron:dev": "concurrently -k \"npm:dev\" \"npm:electron:wait\"",
+    "electron:build": "npm run build && electron-builder --publish=never",
+    "electron:build:win": "npm run build && electron-builder --win --publish=never",
+    "electron:build:win:portable": "npm run build && electron-builder --win portable --publish=never",
+    "electron:build:mac": "npm run build && electron-builder --mac --publish=never",
+    "electron:build:linux": "npm run build && electron-builder --linux --publish=never"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",
@@ -26,6 +29,7 @@
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
     "concurrently": "^10.0.3",
+    "cross-env": "^10.1.0",
     "electron": "^42.4.1",
     "electron-builder": "^26.15.3",
     "typescript": "^5.2.2",
@@ -36,13 +40,31 @@
     "appId": "com.noveltracker.app",
     "productName": "追更控制台",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
+    "asar": true,
+    "asarUnpack": [],
     "files": [
-      "dist/**/*",
-      "electron/**/*",
+      {
+        "from": "dist",
+        "to": "dist",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "electron",
+        "to": "electron",
+        "filter": [
+          "**/*"
+        ]
+      },
       "package.json"
     ],
+    "extraMetadata": {
+      "main": "electron/main.cjs"
+    },
     "win": {
       "target": [
         {
@@ -54,22 +76,25 @@
           "arch": ["x64"]
         }
       ],
-      "artifactName": "追更控制台-Setup-${version}.${ext}"
+      "artifactName": "追更控制台-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "追更控制台"
+      "shortcutName": "追更控制台",
+      "runAfterFinish": true
     },
     "mac": {
       "target": ["dmg"],
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "artifactName": "追更控制台-${version}-${arch}.${ext}"
     },
     "linux": {
       "target": ["deb", "AppImage"],
-      "category": "Utility"
+      "category": "Utility",
+      "artifactName": "追更控制台-${version}-${arch}.${ext}"
     }
   }
 }
